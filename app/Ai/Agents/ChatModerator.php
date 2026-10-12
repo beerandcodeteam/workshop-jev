@@ -6,9 +6,9 @@ use App\Ai\Tools\BanirUsuario;
 use App\Ai\Tools\RegistrarStrike;
 use App\Models\ChatMessage;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Laravel\Ai\Classification\Boolean;
-use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Attributes\MaxSteps;
+use Laravel\Ai\Classification\Boolean as YesNoQuestion;
+use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Promptable;
@@ -81,11 +81,11 @@ class ChatModerator implements Agent, HasStructuredOutput, HasTools
     /**
      * The same guidelines as yes / no questions for the decisions API, keyed by guideline.
      *
-     * @return array<string, Boolean>
+     * @return array<string, YesNoQuestion>
      */
     public static function questions(): array
     {
-        return array_map(fn (array $guideline): Boolean => new Boolean(
+        return array_map(fn (array $guideline): YesNoQuestion => new YesNoQuestion(
             "Esta mensagem do chat de uma live viola a diretriz \"{$guideline['label']}\"? ".self::Reading,
             ['true' => $guideline['block'], 'false' => $guideline['allow']],
         ), config('moderation.guidelines'));

@@ -238,18 +238,19 @@ it('keeps the model comparison closed until it is asked for', function () {
 it('compares the accuracy of every model that ran against the expected verdicts', function () {
     ChatMessage::factory()->approved()->expecting(blocked: false)->create();
     ChatMessage::factory()->blocked()->expecting(blocked: true, kind: 'limiar')->create();
-    ChatMessage::factory()->approved()->expecting(blocked: true, kind: 'limiar')->create(['text' => 'ameaça que passou batida']);
+    ChatMessage::factory()->approved()->expecting(blocked: true, kind: 'limiar')->create(['text' => 'sei onde voce mora']);
     ChatMessage::factory()->failed()->expecting(blocked: true)->create();
     ChatMessage::factory()->approved()->create();
-    ChatMessage::factory()->blocked()->expecting(blocked: false)->create(['model' => 'decisions', 'text' => 'palavrão sem alvo', 'probability' => 0.61]);
+    ChatMessage::factory()->blocked()->expecting(blocked: false)->create(['model' => 'decisions', 'text' => 'que aula boa demais', 'probability' => 0.61]);
 
     Livewire::test('pages::watch')
         ->set('comparing', true)
         ->assertSee('2 de 3 (66,7%)')
         ->assertSee('1 de 2 (50,0%)')
         ->assertSee('0 de 1 (0,0%)')
-        ->assertSeeInOrder(['deixou passar', 'ameaça que passou batida'])
-        ->assertSeeInOrder(['bloqueou à toa', '61%', 'palavrão sem alvo']);
+        ->assertSee('bloqueou à toa')
+        ->assertSeeInOrder(['deixou passar', 'limiar', 'sei onde voce mora'])
+        ->assertSeeInOrder(['61%', 'que aula boa demais']);
 });
 
 it('says so when no model has run yet', function () {
