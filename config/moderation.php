@@ -69,7 +69,8 @@ return [
         'claude-haiku' => ['label' => 'Claude Haiku', 'driver' => 'agent', 'provider' => 'anthropic', 'model' => 'claude-haiku-5-5', 'input_price' => 0.10, 'output_price' => 0.50],
         'gpt-6-luna-decisions' => ['label' => 'GPT Luna', 'driver' => 'decision', 'provider' => 'openai', 'model' => 'gpt-6-luna', 'input_price' => 0.10, 'output_price' => 0.0],
         'jev' => ['label' => 'Jev', 'driver' => 'decision', 'provider' => 'typesafe', 'model' => 'jev-latest', 'input_price' => 0.042, 'output_price' => 0.0],
-        'laya' => ['label' => 'Laya (local)', 'driver' => 'decision', 'provider' => 'laya', 'model' => 'laya-multilingual', 'input_price' => 0.0, 'output_price' => 0.0],
+        'laya' => ['label' => 'Laya base (local)', 'driver' => 'decision', 'provider' => 'laya', 'model' => 'multilingual', 'input_price' => 0.0, 'output_price' => 0.0],
+        'laya-treinado' => ['label' => 'Laya treinado (local)', 'driver' => 'decision', 'provider' => 'laya', 'model' => 'moderador', 'input_price' => 0.0, 'output_price' => 0.0],
         'openai-moderation' => ['label' => 'OpenAI Moderation', 'driver' => 'moderation', 'provider' => 'openai', 'model' => 'omni-moderation-latest', 'input_price' => 0.0, 'output_price' => 0.0],
     ],
 

@@ -22,7 +22,7 @@ Stack: Laravel 13, Livewire 4 (página em arquivo único), Blaze, Tailwind CSS 4
 7. [Dataset de mensagens](#dataset-de-mensagens)
 8. [Como funciona](#como-funciona)
 9. [A tela](#a-tela)
-10. [Laya: modelo de decisão local](#laya-modelo-de-decisão-local-opcional)
+10. [Laya: modelo de decisão local, base e treinado](#laya-modelo-de-decisão-local-base-e-treinado)
 11. [Medições de referência](#medições-de-referência)
 12. [Testes](#testes)
 13. [Problemas comuns](#problemas-comuns)
@@ -38,7 +38,7 @@ Stack: Laravel 13, Livewire 4 (página em arquivo único), Blaze, Tailwind CSS 4
 | Node.js | 20 ou superior | com npm |
 | SQLite | 3.x | já vem com o PHP na maioria das instalações |
 
-Opcional, só para o modelo local Laya: Python 3.10+ e, de preferência, uma GPU NVIDIA.
+Opcional, só para o modelo local Laya: Python 3.10 a 3.13 e, de preferência, uma GPU NVIDIA.
 
 Não é preciso Docker. O projeto roda direto na máquina, com SQLite.
 
@@ -147,11 +147,22 @@ php artisan chat:replay --limit=200 --model=claude-haiku
 php artisan chat:replay --limit=200 --model=gpt-6-luna-decisions
 php artisan chat:replay --limit=200 --model=openai-moderation
 php artisan chat:replay --limit=200 --model=laya
+php artisan chat:replay --limit=200 --model=laya-treinado
 ```
 
 > **Atenção ao custo:** cada mensagem é uma chamada paga nos modelos da OpenAI (LLM e Decisions), Anthropic e TypeSafe. Laya e OpenAI Moderation são gratuitos.
 
 > **Use `--fresh` só no primeiro modelo** de uma comparação. Rodar o mesmo modelo duas vezes sem `--fresh` soma as rodadas.
+
+### `laya:export` — gera os arquivos de treino do Laya
+
+```bash
+php artisan laya:export [--path=DIRETORIO] [--valid=10]
+```
+
+Converte `database/datasets/chat-messages-train.jsonl` para o formato que o `laya-train` lê, com **as mesmas 6 perguntas que o projeto envia** à Decisions API. Grava `train.jsonl` e `valid.jsonl` em `storage/app/laya` (ou em `--path`). `--valid` é a porcentagem separada para validação.
+
+Se você alterar as diretrizes em `config/moderation.php`, rode de novo e treine outra vez: o modelo aprende o texto exato das perguntas.
 
 ### Outros comandos úteis
 
@@ -176,7 +187,8 @@ Definidos em `config/moderation.php`.
 | `claude-haiku` | Claude Haiku | LLM (agente) | Anthropic | `claude-haiku-5-5` | US$ 0,10 / US$ 0,50 |
 | `gpt-6-luna-decisions` | GPT Luna | Decisions API | OpenAI | `gpt-6-luna` | US$ 0,10 / grátis |
 | `jev` | Jev | Decisions API | TypeSafe | `jev-latest` | US$ 0,042 / grátis |
-| `laya` | Laya (local) | Decisions API | servidor local | `laya-multilingual` | grátis |
+| `laya` | Laya base (local) | Decisions API | servidor local | `multilingual` | grátis |
+| `laya-treinado` | Laya treinado (local) | Decisions API | servidor local | `moderador` (ajuste fino) | grátis |
 | `openai-moderation` | OpenAI Moderation | Moderation API | OpenAI | `omni-moderation-latest` | grátis |
 
 Os preços alimentam o custo mostrado na tela. Foram conferidos nas páginas oficiais em outubro de 2026; revise antes de apresentar.
@@ -243,6 +255,31 @@ Arquivo: `database/datasets/chat-messages.jsonl` — **1.272 mensagens** em port
 ### Usuários
 
 30 autores fictícios em três perfis: 12 reincidentes (concentram as mensagens bloqueáveis), 12 ocasionais e 6 que nunca quebram regra. Nas 200 primeiras mensagens, 15 usuários deveriam ser banidos (3 ou mais mensagens bloqueáveis), 7 ficam com 1 ou 2 deslizes e 8 ficam limpos.
+
+### Dataset de treino
+
+Arquivo: `database/datasets/chat-messages-train.jsonl` — **4.239 mensagens**, usadas só para o ajuste fino do Laya.
+
+```json
+{"id":1,"text":"...","blocked":true,"violations":["spam_golpe"],"kind":"limiar","note":"..."}
+```
+
+A diferença para o dataset de teste é o campo `violations`: a lista das diretrizes violadas (chaves de `config/moderation.php`), vazia quando a mensagem é liberada. É ele que permite treinar uma pergunta por diretriz.
+
+| | Qtd. |
+|---|---|
+| Bloqueáveis / liberáveis | 2.367 / 1.872 |
+| `claro` / `limiar` / `misto` / `adversarial` / `ortografia` | 1.756 / 1.323 / 520 / 324 / 316 |
+| Por diretriz | assédio 473, spam e golpe 471, ódio 416, assédio sexual 384, ameaça 373, dados pessoais 359 |
+| Com duas diretrizes violadas | 109 |
+
+Como foi feito, para o treino não contaminar o teste:
+
+- **Geração separada**: outros agentes, outros cenários de live, sem acesso ao dataset de teste.
+- **Auditoria por fatia**: 170 mensagens com rótulo disputável ou texto artificial foram removidas e 28 tiveram a diretriz corrigida.
+- **Filtro contra o teste**: 30 mensagens idênticas a alguma de teste (quase todas curtas, como risadas) e 20 muito parecidas foram removidas.
+
+Continua sendo dado sintético, gerado e rotulado por IA com a mesma política do teste. Mede "aprendeu a política deste canal", não "funciona em chat real".
 
 ### Observações importantes
 
@@ -315,25 +352,98 @@ O acerto só considera mensagens enviadas pelo `chat:replay`, que têm gabarito.
 
 ---
 
-## Laya: modelo de decisão local (opcional)
+## Laya: modelo de decisão local, base e treinado
 
-O Laya é um modelo de decisão de pesos abertos (Apache 2.0) que fala o mesmo protocolo do Jev. No projeto ele usa o mesmo driver da TypeSafe, só trocando a URL.
+O Laya é um modelo de decisão de pesos abertos (Apache 2.0) que fala o mesmo protocolo do Jev. No projeto ele usa o mesmo driver da TypeSafe, só trocando a URL, e aparece duas vezes na barra lateral:
+
+- **Laya base (local)**: o checkpoint multilíngue publicado, sem ajuste.
+- **Laya treinado (local)**: o mesmo checkpoint depois do ajuste fino com o dataset de treino deste repositório.
+
+Os dois recebem **exatamente a mesma requisição** que o Jev: 6 perguntas sim/não, uma por diretriz.
+
+### 1. Instalar
 
 ```bash
-# Instalação (uma vez), em uma pasta fora do projeto
 mkdir ~/laya-serve && cd ~/laya-serve
-python3 -m venv .venv
+python3 -m venv .venv            # Python 3.10 a 3.13
 .venv/bin/pip install "laya[serve]"
+```
 
-# Subir o servidor (a primeira execução baixa o modelo)
+Ocupa cerca de 5 GB. Fica fora do projeto.
+
+### 2. Rodar só o modelo base
+
+```bash
+cd ~/laya-serve
 LAYA_HOST=127.0.0.1 LAYA_PORT=8765 LAYA_DEVICE=cuda LAYA_MODELS=multilingual .venv/bin/laya-serve
 ```
 
-Sem GPU, troque `LAYA_DEVICE=cuda` por `cpu`. A instalação ocupa cerca de 5 GB.
+A primeira execução baixa o checkpoint. Sem GPU, use `LAYA_DEVICE=cpu`.
 
-Com o servidor fora do ar, as mensagens do modelo `laya` passam como **Indisponível**.
+### 3. Treinar
 
-> O formato de perguntas do projeto (critérios longos em português) não favorece o Laya, e a documentação dele o descreve como uma base para ajuste fino, não um motor de decisão pronto. Veja os números abaixo.
+```bash
+# No projeto: gera os arquivos de treino com as perguntas que o app envia
+php artisan laya:export --path=$HOME/laya-serve/data
+
+# No ~/laya-serve: ajuste fino a partir do checkpoint multilíngue
+cd ~/laya-serve
+.venv/bin/laya-train \
+  --data data/train.jsonl \
+  --eval data/valid.jsonl \
+  --base multilingual \
+  --out checkpoints/moderador \
+  --device cuda \
+  --epochs 4
+```
+
+- Em uma RTX 4080 Super levou **cerca de 16 minutos** (22.490 itens de treino: 3.815 mensagens × 6 perguntas, 4 épocas).
+- No fim, o comando imprime o antes e depois no conjunto de validação e grava o checkpoint em `checkpoints/moderador` (~600 MB).
+- O checkpoint treinado **não vai para o Git**. Quem clonar o repositório precisa treinar.
+
+### 4. Rodar base e treinado juntos
+
+```bash
+cd ~/laya-serve
+LAYA_HOST=127.0.0.1 LAYA_PORT=8765 LAYA_DEVICE=cuda \
+LAYA_MODELS=multilingual LAYA_MAX_LOADED=2 \
+LAYA_EXTRA_MODELS='{"moderador": "'$HOME'/laya-serve/checkpoints/moderador"}' \
+.venv/bin/laya-serve
+```
+
+`LAYA_EXTRA_MODELS` registra o checkpoint treinado com o nome `moderador`, que é o `model` da entrada `laya-treinado` em `config/moderation.php`.
+
+### 5. Comparar na ferramenta
+
+```bash
+php artisan chat:replay --limit=200 --model=laya --fresh
+php artisan chat:replay --limit=200 --model=laya-treinado
+```
+
+Depois abra **Comparar modelos** na tela. Com o servidor fora do ar, ou sem o checkpoint treinado registrado, as mensagens passam como **Indisponível**.
+
+### Resultado do ajuste fino
+
+Medido direto no servidor, com a mesma requisição do app e sem strikes:
+
+| | Laya base | Laya treinado |
+|---|---|---|
+| Teste, 200 primeiras mensagens | 56,5% | **86,0%** |
+| Teste, as 1.272 mensagens | 59,1% | **86,9%** |
+| Bloqueou (de 1.272; 751 são bloqueáveis) | 1.271 | 650 |
+| Deixou passar / bloqueou à toa | 0 / 520 | 134 / 33 |
+| Validação (10% do treino, por pergunta) | 15,2% | 96,5% |
+| Tempo por mensagem | ~20 ms | ~21 ms |
+
+Por tipo, nas 1.272 (treinado): adversarial 128/138, claro 384/429, ortografia 216/247, misto 124/148, limiar 253/310.
+
+Como ler esses números:
+
+- **O modelo base não decide nada neste formato**: responde "viola" para praticamente tudo. Os 59% são a proporção de mensagens bloqueáveis.
+- **O ajuste fino funciona**: 27 a 30 pontos a mais, sem custo de latência, com 16 minutos de treino local.
+- **A diferença entre 96,5% e 86,9% é a lição principal.** Na validação, que vem do mesmo lote do treino, o modelo parece quase perfeito. No teste, gerado em outro momento, cai dez pontos. É o efeito de treinar com dado sintético: o modelo aprende também o jeito do gerador. Com mensagens reais a queda tende a ser maior.
+- **O erro mudou de lado**: o treinado erra mais deixando passar do que bloqueando à toa.
+- Uma rodada de treino, uma semente, sem busca de hiperparâmetros. O Jev, no mesmo teste de 200, fica em 97,5%.
 
 ---
 
@@ -345,8 +455,9 @@ Medidas nas **200 primeiras mensagens** do dataset, com strikes desligados. São
 |---|---|---|---|
 | GPT Luna (LLM) | 99,0% | ~2,4 s | ~US$ 0,024 |
 | Jev (Decisions) | 97,5% | ~0,4 s | ~US$ 0,010 |
+| Laya treinado (local) | 86,0% | ~0,03 s direto no servidor | grátis |
 | OpenAI Moderation | 58,5% | ~0,6 s | grátis |
-| Laya (local) | 56,5% | ~0,03 s direto no servidor | grátis |
+| Laya base (local) | 56,5% | ~0,03 s direto no servidor | grátis |
 
 Referência: bloquear tudo sem olhar acerta 56,5% nessas 200 mensagens.
 
@@ -358,7 +469,7 @@ O que observamos, com as devidas ressalvas:
 - **O resultado oscila entre rodadas.** O mesmo modelo, com as mesmas mensagens, variou cerca de 1 ponto percentual.
 - **Ban automático amplifica o erro.** Um modelo que bloqueia demais expulsa os usuários, e as mensagens seguintes nem são avaliadas.
 - **A Moderation API não aceita instrução.** Colocar um prompt dentro do texto não funciona: o prompt passa a ser classificado junto e enfraquece o sinal.
-- **Laya, usado como os autores recomendam** (perguntas curtas em inglês, sem critérios), chegou a ~70%.
+- **Laya base, usado como os autores recomendam** (perguntas curtas em inglês, sem critérios), chegou a ~70%. Com ajuste fino no formato do projeto, 86%.
 
 ---
 
