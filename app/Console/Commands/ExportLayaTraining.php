@@ -32,7 +32,9 @@ class ExportLayaTraining extends Command
         $every = (int) round(100 / max(1, (int) $this->option('valid')));
         $files = ['train' => [], 'valid' => []];
 
-        foreach (file(database_path('datasets/chat-messages-train.jsonl'), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $index => $line) {
+        $lines = file(database_path('datasets/chat-messages-train.jsonl'), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+
+        foreach ($lines as $index => $line) {
             $message = json_decode($line, true);
 
             $expected = [];

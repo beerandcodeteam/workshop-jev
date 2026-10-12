@@ -9,6 +9,8 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Attributes\DeleteWhenMissingModels;
 use Illuminate\Support\Facades\Http;
 use Laravel\Ai\Classification;
+use Laravel\Ai\Responses\Data\BooleanAnswer;
+use Laravel\Ai\Responses\StructuredAgentResponse;
 use Throwable;
 
 #[DeleteWhenMissingModels]
@@ -43,25 +45,37 @@ class ModerateChatMessage implements ShouldQueue
 
         try {
             if ($driver === 'moderation') {
+                /** @var array{flagged: bool, category_scores: array<string, float>} $result */
                 $result = Http::withToken(config("ai.providers.{$provider}.key"))
                     ->timeout(30)
                     ->post(config("ai.providers.{$provider}.url").'/moderations', ['model' => $model, 'input' => $this->message->text])
                     ->throw()
                     ->json('results.0');
 
-                $category = collect($result['category_scores'])->sortDesc()->keys()->first();
+                $scores = $result['category_scores'];
+                arsort($scores);
+                $category = (string) array_key_first($scores);
 
-                $verdict = ['blocked' => $result['flagged'], 'guideline' => $result['flagged'] ? $category : null, 'probability' => $result['category_scores'][$category]];
+                $verdict = ['blocked' => $result['flagged'], 'guideline' => $result['flagged'] ? $category : null, 'probability' => $scores[$category]];
             } elseif ($driver === 'decision') {
                 $questions = ChatModerator::questions();
                 $response = Classification::of($this->message->text)->questions($questions)->classify($provider, $model);
 
-                $guideline = collect(array_keys($questions))->sortByDesc(fn (string $key): float => $response[$key]->probability)->first();
-                $blocked = $response[$guideline]->isTrue();
+                $probabilities = [];
 
-                $verdict = ['blocked' => $blocked, 'guideline' => $blocked ? $guideline : null, 'probability' => $response[$guideline]->probability];
+                foreach (array_keys($questions) as $key) {
+                    $answer = $response[$key];
+                    $probabilities[$key] = $answer instanceof BooleanAnswer ? $answer->probability : 0.0;
+                }
+
+                arsort($probabilities);
+                $guideline = (string) array_key_first($probabilities);
+                $blocked = $probabilities[$guideline] >= 0.5;
+
+                $verdict = ['blocked' => $blocked, 'guideline' => $blocked ? $guideline : null, 'probability' => $probabilities[$guideline]];
                 $verdict += ['input_tokens' => $response->usage->inputTokens, 'output_tokens' => $response->usage->outputTokens];
             } else {
+                /** @var StructuredAgentResponse $response */
                 $response = (new ChatModerator($this->message))->prompt($this->message->text, provider: $provider, model: $model);
                 $blocked = (bool) $response['blocked'];
 

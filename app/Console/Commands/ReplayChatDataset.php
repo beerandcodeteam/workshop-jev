@@ -34,7 +34,7 @@ class ReplayChatDataset extends Command
             ChatMessage::query()->delete();
         }
 
-        $lines = file(database_path('datasets/chat-messages.jsonl'), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $lines = file(database_path('datasets/chat-messages.jsonl'), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
 
         foreach (array_slice($lines, 0, (int) $this->option('limit')) as $line) {
             $record = json_decode($line, true);
