@@ -3,9 +3,11 @@
 namespace App\Ai;
 
 use App\Models\Ticket;
+use App\Models\TicketExample;
 use Laravel\Ai\Classification\Boolean as YesNoQuestion;
 use Laravel\Ai\Classification\Choice;
 use Laravel\Ai\Classification\Score;
+use Laravel\Ai\Embeddings;
 
 class TicketTriage
 {
@@ -78,13 +80,59 @@ class TicketTriage
     }
 
     /**
-     * What the model reads: the ticket alone, or the ticket next to the profile of its customer.
+     * What the model reads: the ticket alone, or the ticket next to the profile of its customer
+     * and the most similar tickets a person already routed.
      *
-     * @return string|array{ticket: string, cliente: array<string, mixed>}
+     * @return string|array{ticket: string, cliente?: array<string, mixed>, tickets_parecidos_ja_resolvidos?: array<int, array<string, mixed>>}
      */
     public static function state(Ticket $ticket): string|array
     {
-        return $ticket->context === null ? $ticket->text : ['ticket' => $ticket->text, 'cliente' => $ticket->context];
+        $state = array_filter([
+            'ticket' => $ticket->text,
+            'cliente' => $ticket->context,
+            'tickets_parecidos_ja_resolvidos' => $ticket->examples ?: null,
+        ], fn (mixed $value): bool => $value !== null);
+
+        return count($state) === 1 ? $ticket->text : $state;
+    }
+
+    /**
+     * The embedding vector of each text, in the same order.
+     *
+     * @param  array<int, string>  $texts
+     * @return array<int, array<int, float>>
+     */
+    public static function embed(array $texts): array
+    {
+        return Embeddings::for($texts)->dimensions(config('triage.examples.dimensions'))->generate()->embeddings;
+    }
+
+    /**
+     * The labeled tickets most similar to the given one, as the model reads them: the team and the urgency
+     * go by the same descriptions the questions offer, so the model can match them to its options.
+     *
+     * @return array<int, array{ticket: string, time: string, urgencia: string|null, motivo: string|null, similaridade: float}>
+     */
+    public static function similarExamples(Ticket $ticket): array
+    {
+        [$embedding] = self::embed([$ticket->text]);
+
+        return TicketExample::query()
+            ->whereNotNull('embedding')
+            ->where('text', '!=', $ticket->text)
+            ->select(['text', 'team', 'urgency', 'note'])
+            ->selectVectorDistance('embedding', $embedding, as: 'distance')
+            ->whereVectorSimilarTo('embedding', $embedding, minSimilarity: (float) config('triage.examples.min_similarity'))
+            ->limit((int) config('triage.examples.limit'))
+            ->get()
+            ->map(fn (TicketExample $example): array => [
+                'ticket' => $example->text,
+                'time' => config("triage.teams.{$example->team}.description", $example->team),
+                'urgencia' => $example->urgency === null ? null : config("triage.urgency.levels.{$example->urgency}"),
+                'motivo' => $example->note,
+                'similaridade' => round(1 - (float) $example->getAttribute('distance'), 2),
+            ])
+            ->all();
     }
 
     /**

@@ -28,7 +28,8 @@ class TriageTicket implements ShouldQueue
      * Asks the ticket's model every triage question in a single call, times it and saves the answers.
      * The job only stores what the model said: which column the ticket lands on and how it is
      * ranked are rules the board applies in plain code. A ticket the model could not answer
-     * is left without a team, so a person routes it.
+     * is left without a team, so a person routes it. A ticket that asks for examples first
+     * retrieves the most similar labeled tickets, which go in the state next to it.
      */
     public function handle(): void
     {
@@ -36,6 +37,10 @@ class TriageTicket implements ShouldQueue
         $startedAt = microtime(true);
 
         try {
+            if ($this->ticket->retrieves) {
+                $this->ticket->examples = TicketTriage::similarExamples($this->ticket);
+            }
+
             $response = Classification::of(TicketTriage::state($this->ticket))->questions(TicketTriage::questions())->classify($provider, $model);
 
             $team = $response['team'];

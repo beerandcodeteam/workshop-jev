@@ -13,6 +13,7 @@ use Illuminate\Console\Command;
     {--model= : Key of a decisions model in config/moderation.php (defaults to the one in config/triage.php)}
     {--limit= : How many tickets of the dataset to send (defaults to all of them)}
     {--context : Send the profile of each customer in the state, next to the ticket}
+    {--examples : Retrieve the most similar labeled tickets into the state (run tickets:embed first)}
     {--fresh : Delete every ticket before sending}')]
 #[Description('Send tickets of the triage dataset to the inbox through the queue')]
 class ReplayTicketsDataset extends Command
@@ -46,6 +47,7 @@ class ReplayTicketsDataset extends Command
                 'customer' => $record['customer'],
                 'text' => $record['text'],
                 'context' => $this->option('context') ? TicketTriage::profile($record['customer']) : null,
+                'retrieves' => (bool) $this->option('examples'),
                 'expected_team' => $record['team'],
                 'expected_urgency' => $record['urgency'],
                 'kind' => $record['kind'],

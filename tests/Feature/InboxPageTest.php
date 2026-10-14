@@ -1,8 +1,10 @@
 <?php
 
 use App\Ai\TicketTriage;
+use App\Jobs\EmbedTicketExample;
 use App\Jobs\TriageTicket;
 use App\Models\Ticket;
+use App\Models\TicketExample;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Ai\Classification;
 use Livewire\Livewire;
@@ -257,4 +259,75 @@ it('shows the state sent to the model when the ticket carried a profile', functi
         ->call('inspect', $ticket->id)
         ->assertSee('State enviado ao modelo')
         ->assertSee('atrasado há 12 dias');
+});
+
+it('sends a typed ticket that retrieves similar examples', function () {
+    Queue::fake([TriageTicket::class]);
+
+    Livewire::test('pages::inbox')
+        ->set('retrieves', true)
+        ->set('draft', 'Não consigo entrar no curso.')
+        ->call('send')
+        ->assertSee('+exemplos');
+
+    expect(Ticket::query()->sole()->retrieves)->toBeTrue();
+});
+
+it('turns the team a person picks into an example and queues its embedding', function () {
+    Queue::fake([EmbedTicketExample::class]);
+    $ticket = Ticket::factory()->triaged('tecnico', 0.4)->create(['model' => 'decisions', 'text' => 'Paguei e não liberou.']);
+
+    Livewire::test('pages::inbox')
+        ->call('inspect', $ticket->id)
+        ->call('correct', 'tecnico')
+        ->call('correct', 'acesso')
+        ->assertSee('vira exemplo do RAG: Acesso');
+
+    expect(TicketExample::query()->sole())
+        ->source->toBe(TicketExample::Review)
+        ->ticket_id->toBe($ticket->id)
+        ->text->toBe('Paguei e não liberou.')
+        ->team->toBe('acesso')
+        ->embedding->toBeNull();
+    Queue::assertPushed(EmbedTicketExample::class, 2);
+});
+
+it('rejects a correction to a team that is not configured', function () {
+    $ticket = Ticket::factory()->triaged()->create(['model' => 'decisions']);
+
+    Livewire::test('pages::inbox')
+        ->call('inspect', $ticket->id)
+        ->call('correct', 'inexistente')
+        ->assertNotFound();
+
+    $this->assertDatabaseCount('ticket_examples', 0);
+});
+
+it('shows the similar tickets the retrieval sent in the state', function () {
+    $ticket = Ticket::factory()->triaged('acesso')->create([
+        'model' => 'decisions',
+        'retrieves' => true,
+        'examples' => [[
+            'ticket' => 'Minha senha parou de funcionar.',
+            'time' => config('triage.teams.acesso.description'),
+            'urgencia' => config('triage.urgency.levels.2'),
+            'motivo' => 'Login travado.',
+            'similaridade' => 0.83,
+        ]],
+    ]);
+
+    Livewire::test('pages::inbox')
+        ->assertSee('+1 exemplos')
+        ->call('inspect', $ticket->id)
+        ->assertSee('Tickets parecidos (RAG)')
+        ->assertSeeInOrder(['Acesso', 'Bloqueado', '0,83', 'Minha senha parou de funcionar.', 'Login travado.'])
+        ->assertSee('1 tickets parecidos');
+});
+
+it('says when the retrieval found no similar ticket', function () {
+    $ticket = Ticket::factory()->triaged()->create(['model' => 'decisions', 'retrieves' => true, 'examples' => []]);
+
+    Livewire::test('pages::inbox')
+        ->call('inspect', $ticket->id)
+        ->assertSee('Nenhum ticket rotulado parecido o bastante');
 });

@@ -1,8 +1,10 @@
 <?php
 
 use App\Ai\TicketTriage;
+use App\Jobs\EmbedTicketExample;
 use App\Jobs\TriageTicket;
 use App\Models\Ticket;
+use App\Models\TicketExample;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
@@ -39,6 +41,11 @@ new #[Title('beerandcode - Inbox')] class extends Component
      * The persona a typed ticket comes from; empty sends the ticket without a profile.
      */
     public string $persona = '';
+
+    /**
+     * Whether a typed ticket retrieves the most similar labeled tickets into its state.
+     */
+    public bool $retrieves = false;
 
     public function mount(): void
     {
@@ -86,6 +93,7 @@ new #[Title('beerandcode - Inbox')] class extends Component
             'customer' => $this->persona ?: 'voce',
             'text' => $this->draft,
             'context' => $this->persona ? TicketTriage::profile($this->persona) : null,
+            'retrieves' => $this->retrieves,
         ]);
 
         TriageTicket::dispatch($ticket);
@@ -101,6 +109,28 @@ new #[Title('beerandcode - Inbox')] class extends Component
     }
 
     /**
+     * Records the team a person chose for the inspected ticket as a labeled example and queues its embedding,
+     * so the next tickets like this one retrieve the correction.
+     */
+    public function correct(string $team): void
+    {
+        abort_unless(array_key_exists($team, config('triage.teams')), 404);
+
+        $ticket = Ticket::query()->where('model', $this->model)->whereNotNull('triaged_at')->findOrFail($this->inspecting);
+
+        $example = TicketExample::query()->updateOrCreate(['ticket_id' => $ticket->id], [
+            'source' => TicketExample::Review,
+            'text' => $ticket->text,
+            'team' => $team,
+            'urgency' => $ticket->urgency === null ? null : (int) round($ticket->urgency),
+            'note' => 'Time escolhido por uma pessoa na revisão.',
+            'embedding' => null,
+        ]);
+
+        EmbedTicketExample::dispatch($example);
+    }
+
+    /**
      * The latest tickets of the selected model.
      *
      * @return Collection<int, Ticket>
@@ -109,6 +139,7 @@ new #[Title('beerandcode - Inbox')] class extends Component
     public function tickets(): Collection
     {
         return Ticket::query()
+            ->with(['correction' => fn ($query) => $query->select(['id', 'ticket_id', 'team'])->selectRaw('embedding is not null as indexed')])
             ->where('model', $this->model)
             ->latest('id')
             ->limit(self::MaxTickets)
@@ -275,6 +306,9 @@ new #[Title('beerandcode - Inbox')] class extends Component
                                     @if ($ticket->context !== null)
                                         <span class="shrink-0 rounded bg-[#f5a523]/20 px-1 font-mono text-[10px] text-[#ffd37a]" title="Perfil do cliente no state">+perfil</span>
                                     @endif
+                                    @if ($ticket->retrieves)
+                                        <span class="shrink-0 rounded bg-tv-purple/25 px-1 font-mono text-[10px] text-tv-link" title="Tickets parecidos já resolvidos no state">+{{ $ticket->examples === null ? '' : count($ticket->examples).' ' }}exemplos</span>
+                                    @endif
                                 </span>
                                 @if ($ticket->confidence !== null)
                                     <span class="shrink-0 font-mono text-[11px] text-tv-muted tabular-nums" title="Confiança do time">{{ $percent($ticket->confidence) }}</span>
@@ -317,6 +351,10 @@ new #[Title('beerandcode - Inbox')] class extends Component
                                 <option value="{{ $persona }}" wire:key="persona-{{ $persona }}">{{ $persona }} · {{ TicketTriage::profile($persona)['pagamento'] ?? 'não é cliente' }}</option>
                             @endforeach
                         </select>
+                        <label class="flex items-center gap-2 text-tv-muted">
+                            <input type="checkbox" wire:model="retrieves" class="accent-tv-purple">
+                            <span>Buscar tickets parecidos (RAG)</span>
+                        </label>
                         <textarea wire:model="draft" maxlength="1000" rows="2" placeholder="Abrir um ticket" aria-label="Abrir um ticket" class="w-full resize-none rounded bg-white/10 px-2.5 py-2 ring-tv-purple outline-none placeholder:text-tv-muted focus:bg-black focus:ring-2"></textarea>
                         @error('draft')
                             <p class="text-[#ff8280]">{{ $message }}</p>
@@ -350,11 +388,54 @@ new #[Title('beerandcode - Inbox')] class extends Component
                 <div class="flex min-h-0 flex-col gap-5 overflow-y-auto p-5">
                     <p class="text-base">“{{ $inspected->text }}”</p>
 
-                    @if ($inspected->context !== null)
+                    @if ($inspected->retrieves)
+                        <section>
+                            <h3 class="flex items-baseline justify-between gap-3">
+                                <span class="font-semibold">Tickets parecidos (RAG)</span>
+                                <span class="font-mono text-xs text-tv-link">top {{ config('triage.examples.limit') }} · similaridade ≥ {{ $decimal((float) config('triage.examples.min_similarity')) }}</span>
+                            </h3>
+                            @if ($inspected->examples === null)
+                                <p class="mt-2 animate-pulse text-[#ffd37a]">A busca roda no job, antes da triagem…</p>
+                            @elseif ($inspected->examples === [])
+                                <p class="mt-2 text-tv-muted">Nenhum ticket rotulado parecido o bastante; o modelo leu o ticket sem exemplos.</p>
+                            @else
+                                <ol class="mt-2 flex flex-col gap-1.5">
+                                    @foreach ($inspected->examples as $example)
+                                        @php
+                                            $exampleTeam = collect($teams)->first(fn (array $team): bool => $team['description'] === $example['time']);
+                                            $exampleUrgency = array_search($example['urgencia'], config('triage.urgency.levels'), true);
+                                        @endphp
+                                        <li wire:key="example-{{ $loop->index }}" class="flex flex-col gap-1.5 rounded bg-black/25 px-3 py-2">
+                                            <span class="flex items-center justify-between gap-3 font-mono text-[11px]">
+                                                <span class="flex flex-wrap items-center gap-1">
+                                                    <span class="rounded px-1.5 py-0.5 font-semibold text-tv-bg" style="background: {{ $exampleTeam['color'] ?? '#adadb8' }}">{{ $exampleTeam['label'] ?? $example['time'] }}</span>
+                                                    @if ($exampleUrgency !== false)
+                                                        <span class="rounded bg-white/10 px-1.5 py-0.5">{{ config('triage.urgency.labels')[$exampleUrgency] }}</span>
+                                                    @endif
+                                                </span>
+                                                <span class="flex w-32 shrink-0 items-center gap-2" title="Similaridade de cosseno">
+                                                    <span class="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+                                                        <span class="block h-full rounded-full bg-tv-purple" style="width: {{ round(max(0, $example['similaridade']) * 100) }}%"></span>
+                                                    </span>
+                                                    <span class="tabular-nums">{{ $decimal($example['similaridade']) }}</span>
+                                                </span>
+                                            </span>
+                                            <span class="text-sm">“{{ $example['ticket'] }}”</span>
+                                            @if ($example['motivo'])
+                                                <span class="text-xs text-tv-muted">{{ $example['motivo'] }}</span>
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                </ol>
+                            @endif
+                        </section>
+                    @endif
+
+                    @if (is_array(TicketTriage::state($inspected)))
                         <section>
                             <h3 class="flex items-baseline justify-between gap-3">
                                 <span class="font-semibold">State enviado ao modelo</span>
-                                <span class="font-mono text-xs text-[#ffd37a]">ticket + perfil do cliente</span>
+                                <span class="font-mono text-xs text-[#ffd37a]">{{ implode(' + ', array_filter(['ticket', $inspected->context !== null ? 'perfil do cliente' : null, $inspected->examples ? count($inspected->examples).' tickets parecidos' : null])) }}</span>
                             </h3>
                             <pre class="mt-2 max-h-56 overflow-auto rounded bg-black/40 p-3 font-mono text-xs whitespace-pre-wrap text-tv-muted">{{ json_encode(TicketTriage::state($inspected), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</pre>
                         </section>
@@ -400,6 +481,18 @@ new #[Title('beerandcode - Inbox')] class extends Component
                                 </div>
                             @endforeach
                         </dl>
+
+                        <section>
+                            <h3 class="flex items-baseline justify-between gap-3">
+                                <span class="font-semibold">Corrigir o time</span>
+                                <span class="font-mono text-xs text-tv-muted">{{ $inspected->correction ? 'vira exemplo do RAG: '.($teams[$inspected->correction->team]['label'] ?? $inspected->correction->team).($inspected->correction->getAttribute('indexed') ? ' · indexado' : ' · gerando embedding…') : 'a correção vira exemplo para os próximos tickets' }}</span>
+                            </h3>
+                            <div class="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Corrigir o time">
+                                @foreach ($teams as $key => $team)
+                                    <button type="button" wire:click="correct('{{ $key }}')" wire:key="correct-{{ $key }}" aria-pressed="{{ $inspected->correction?->team === $key ? 'true' : 'false' }}" @class(['h-[30px] rounded px-2.5 font-semibold', 'bg-tv-purple' => $inspected->correction?->team === $key, 'bg-white/10 hover:bg-white/15' => $inspected->correction?->team !== $key])>{{ $team['label'] }}</button>
+                                @endforeach
+                            </div>
+                        </section>
 
                         <p class="font-mono text-xs text-tv-muted">prioridade = {{ $decimal($urgencyWeight / 100) }} × {{ $decimal(TicketTriage::normalize($inspected->urgency, 'urgency')) }} + {{ $decimal(1 - $urgencyWeight / 100) }} × {{ $decimal(TicketTriage::normalize($inspected->frustration, 'frustration')) }} = {{ $decimal($priority) }} · calculada no código, sem nova chamada</p>
                     @endif

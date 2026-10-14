@@ -117,4 +117,25 @@ return [
 
     'personas' => ['ana.lima', 'bruno.alves', 'carla.dev', 'diego.souza', 'elisa.r', 'fabio.n'],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Similar Examples (RAG)
+    |--------------------------------------------------------------------------
+    |
+    | Tickets whose team a person confirmed, from the dataset or from the
+    | review, live in the ticket_examples table with an embedding. When a
+    | ticket asks for examples, the job embeds its text and sends up to
+    | "limit" of the most similar ones in the state, as long as the cosine
+    | similarity reaches "min_similarity". An example with the very same
+    | text as the ticket is never sent, so a replay cannot read its answer.
+    | The dimensions must match the vector column of the migration.
+    |
+    */
+
+    'examples' => [
+        'limit' => 4,
+        'min_similarity' => 0.3,
+        'dimensions' => 1536,
+    ],
+
 ];

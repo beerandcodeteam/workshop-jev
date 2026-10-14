@@ -40,7 +40,7 @@ Stack: Laravel 13, Livewire 4 (página em arquivo único), Blaze, Tailwind CSS 4
 
 Opcional, só para o modelo local Laya: Python 3.10 a 3.13 e, de preferência, uma GPU NVIDIA.
 
-Não é preciso Docker. O projeto roda direto na máquina, com SQLite.
+O projeto roda no **Laravel Sail** (Docker), com PostgreSQL + **pgvector**, que guarda os embeddings dos tickets parecidos (veja [Tickets parecidos no `state` (RAG)](#tickets-parecidos-no-state-rag)). A migration de `ticket_examples` precisa da extensão `vector`, então o SQLite não serve mais.
 
 ---
 
@@ -86,7 +86,8 @@ Só é preciso a chave dos modelos que você for usar. Sem a chave, as mensagens
 |---|---|---|
 | `MODERATION_STRIKES` | `false` | Se strikes e ban começam ligados. O botão da tela sobrepõe esse valor até o cache ser limpo. |
 | `MODERATION_MODEL` | `gpt-6-luna` | Modelo selecionado ao abrir a tela e usado pelo `chat:replay` quando `--model` não é informado. Aceita qualquer chave da tabela de [modelos](#modelos-disponíveis). |
-| `LAYA_URL` | `http://127.0.0.1:8765/v1` | Endereço do servidor local do Laya. |
+| `LAYA_URL` | `http://127.0.0.1:8765/v1` | Endereço do servidor local do Laya. **No Sail use `http://host.docker.internal:8765/v1`**: dentro do container, `127.0.0.1` é o próprio container. O Laya precisa escutar em `0.0.0.0`. |
+| `QUEUE_WORKERS` | `10` | Quantas réplicas do serviço `queue` o `sail up` sobe. |
 | `LAYA_API_KEY` | `local` | Só é necessária se o servidor do Laya for iniciado com chave. |
 | `SERVER_HOST` | `127.0.0.1` | Use `0.0.0.0` para acessar a tela de outra máquina ou do Windows quando o projeto roda no WSL. |
 
@@ -102,6 +103,21 @@ Só é preciso a chave dos modelos que você for usar. Sem a chave, as mensagens
 ---
 
 ## Rodando o projeto
+
+### Com Sail (padrão)
+
+```bash
+vendor/bin/sail up -d                 # app, pgsql (pgvector) e 10 workers da fila
+vendor/bin/sail artisan migrate
+vendor/bin/sail artisan tickets:embed # embeddings dos tickets rotulados, para o RAG
+vendor/bin/sail npm run dev           # Vite
+```
+
+O `compose.yaml` tem um serviço `queue` com `QUEUE_WORKERS` réplicas (padrão 10) de `queue:listen`. Elas sobem junto com o `sail up`, então não é preciso o `composer run dev`. Se rodar `sail composer run dev` também, ele soma mais 15 workers.
+
+> Rode os comandos sempre pelo `sail`. O `php` do host compila views com caminhos `/home/...` que não existem no container (`filemtime(): stat failed`). Se acontecer, `sail artisan view:clear`.
+
+### Sem Docker
 
 ```bash
 composer run dev
@@ -155,7 +171,7 @@ php artisan chat:replay --limit=200 --model=openai-moderation
 ### `tickets:replay` — envia tickets do dataset para o Inbox
 
 ```bash
-php artisan tickets:replay [--model=CHAVE] [--limit=N] [--context] [--fresh]
+php artisan tickets:replay [--model=CHAVE] [--limit=N] [--context] [--examples] [--fresh]
 ```
 
 | Opção | Padrão | Descrição |
@@ -163,7 +179,8 @@ php artisan tickets:replay [--model=CHAVE] [--limit=N] [--context] [--fresh]
 | `--model=` | valor de `TRIAGE_MODEL` (`jev`) | Chave de um modelo **decision** (o Inbox não usa LLM nem Moderation API). |
 | `--limit=` | todos | Quantos tickets enviar, sempre os **primeiros N** de `database/datasets/tickets.jsonl` (o dataset tem 66). |
 | `--context` | — | Manda o **perfil do cliente** no `state`, junto do ticket (veja abaixo). |
-| `--fresh` | — | Apaga **todos** os tickets de **todos** os modelos antes de enviar. |
+| `--examples` | — | **RAG**: o job busca os tickets rotulados mais parecidos e manda no `state` (veja abaixo). Rode `tickets:embed` antes. |
+| `--fresh` | — | Apaga **todos** os tickets de **todos** os modelos antes de enviar. Não apaga os exemplos do RAG nem os embeddings. |
 
 Para testar o Inbox em todos os modelos, mande os 66 tickets para cada um e troque de modelo no topo da tela (`/inbox`). Cada modelo tem o próprio quadro:
 
@@ -196,7 +213,41 @@ php artisan tickets:replay --model=jev --context
 
 As duas rodadas caem no mesmo quadro; os tickets com perfil têm o selo **+perfil** e, ao abrir um deles, o modal mostra o `state` exato que o modelo recebeu. Para comparar só uma rodada por vez, use `--fresh` no comando. Na tela, o seletor acima do campo da coluna Entrada abre um ticket como uma das personas (`config/triage.php`), com o perfil dela no `state`.
 
-> Os workers precisam estar rodando (`composer run dev`); sem eles, os tickets ficam parados na coluna Entrada. Assim como no chat, rodar o mesmo modelo duas vezes soma as rodadas, e `--fresh` no primeiro comando começa do zero.
+#### Tickets parecidos no `state` (RAG)
+
+Com `--examples` (ou o checkbox **Buscar tickets parecidos (RAG)** na coluna Entrada), o `TriageTicket` gera o embedding do texto, busca no pgvector os tickets já rotulados mais parecidos e manda junto, antes de classificar:
+
+```json
+{"ticket": "Paguei no pix e não liberou nada.",
+ "tickets_parecidos_ja_resolvidos": [
+   {"ticket": "Comprei o curso de Laravel ontem e até agora não apareceu nada...",
+    "time": "Login, senha, liberação de curso...", "urgencia": "O cliente está impedido...",
+    "motivo": "Pagou e não recebeu acesso.", "similaridade": 0.71}]}
+```
+
+- **De onde vêm os exemplos:** tabela `ticket_examples`, carregada do dataset por `tickets:embed`, mais as **correções da revisão**: no modal, "Corrigir o time" grava o ticket como exemplo e gera o embedding na fila. O índice melhora com o uso.
+- **Regras** (`config/triage.php`, chave `examples`): até `limit` (4) exemplos com similaridade de cosseno ≥ `min_similarity` (0,3), embeddings de `dimensions` (1536) da OpenAI (`OPENAI_API_KEY`).
+- **Sem vazamento:** um exemplo com o mesmo texto do ticket nunca entra, então o replay não lê o próprio gabarito.
+- **Na tela:** os cards têm o selo **+N exemplos** e o modal mostra a seção **Tickets parecidos (RAG)** com time, urgência, similaridade e motivo de cada um, além do `state` cru.
+
+Para medir, combine as flags e compare "Time certo", tokens e tempo:
+
+```bash
+php artisan tickets:replay --fresh                        # só o ticket
+php artisan tickets:replay --fresh --context              # + perfil
+php artisan tickets:replay --fresh --examples             # + tickets parecidos
+php artisan tickets:replay --fresh --context --examples   # os dois
+```
+
+> Os workers precisam estar rodando (`sail up` ou `composer run dev`); sem eles, os tickets ficam parados na coluna Entrada. Assim como no chat, rodar o mesmo modelo duas vezes soma as rodadas, e `--fresh` no primeiro comando começa do zero.
+
+### `tickets:embed` — gera os embeddings dos exemplos do RAG
+
+```bash
+php artisan tickets:embed [--fresh]
+```
+
+Carrega os tickets de `database/datasets/tickets.jsonl` em `ticket_examples` e gera os embeddings que faltam, incluindo os das correções da revisão. Rodar de novo só gera os que faltam. `--fresh` gera todos outra vez (por exemplo, depois de trocar o modelo de embedding).
 
 ### `laya:export` — gera os arquivos de treino do Laya
 
@@ -216,6 +267,7 @@ Se você alterar as diretrizes em `config/moderation.php`, rode de novo e treine
 | `php artisan migrate` | Aplica migrations novas. Funciona com os workers ligados. |
 | `php artisan migrate:fresh` | Recria o banco do zero. **Pare o `composer run dev` antes** (veja [Problemas comuns](#problemas-comuns)). Também volta a chave de strikes para o padrão de `MODERATION_STRIKES` (desligada). |
 | `php artisan queue:flush` | Limpa a lista de jobs que falharam. |
+| `php artisan tickets:embed` | Gera os embeddings dos exemplos do RAG. Rode de novo depois de um `migrate:fresh`. |
 | `php artisan test --compact` | Roda a suíte de testes. |
 | `vendor/bin/pint --format agent` | Formata o código PHP. |
 

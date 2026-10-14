@@ -96,3 +96,14 @@ it('has a profile for the customer of every ticket of the dataset', function () 
     expect(array_diff($customers, array_keys(TicketTriage::customers())))->toBe([])
         ->and(array_diff(config('triage.personas'), array_keys(TicketTriage::customers())))->toBe([]);
 });
+
+it('asks the job to retrieve similar examples only when told to', function (array $options, bool $retrieves) {
+    Queue::fake([TriageTicket::class]);
+
+    $this->artisan('tickets:replay', ['--limit' => 1, ...$options])->assertSuccessful();
+
+    expect(Ticket::query()->sole()->retrieves)->toBe($retrieves);
+})->with([
+    'with examples' => [['--examples' => true], true],
+    'without examples' => [[], false],
+]);

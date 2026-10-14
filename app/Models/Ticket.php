@@ -7,6 +7,7 @@ use Database\Factories\TicketFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -17,6 +18,8 @@ use Illuminate\Support\Carbon;
  * @property string $customer
  * @property string $text
  * @property array<string, mixed>|null $context The customer profile sent in the state next to the ticket; null when the ticket went alone.
+ * @property bool $retrieves Whether the job retrieves the most similar labeled tickets into the state.
+ * @property array<int, array<string, mixed>>|null $examples The similar tickets sent in the state; null until retrieved.
  * @property string|null $expected_team The team the dataset expects; null for tickets typed in the inbox.
  * @property int|null $expected_urgency The urgency level the dataset expects.
  * @property string|null $kind The kind of dataset ticket: claro, misto, limiar or adversarial.
@@ -36,7 +39,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['model', 'customer', 'text', 'context', 'expected_team', 'expected_urgency', 'kind', 'team', 'team_probabilities', 'confidence', 'urgency', 'urgency_probabilities', 'frustration', 'frustration_probabilities', 'refund', 'ms', 'input_tokens', 'output_tokens', 'error', 'triaged_at'])]
+#[Fillable(['model', 'customer', 'text', 'context', 'retrieves', 'examples', 'expected_team', 'expected_urgency', 'kind', 'team', 'team_probabilities', 'confidence', 'urgency', 'urgency_probabilities', 'frustration', 'frustration_probabilities', 'refund', 'ms', 'input_tokens', 'output_tokens', 'error', 'triaged_at'])]
 class Ticket extends Model
 {
     /** @use HasFactory<TicketFactory> */
@@ -89,6 +92,16 @@ class Ticket extends Model
     }
 
     /**
+     * The example a person made of this ticket by correcting its team, if any.
+     *
+     * @return HasOne<TicketExample, $this>
+     */
+    public function correction(): HasOne
+    {
+        return $this->hasOne(TicketExample::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -97,6 +110,8 @@ class Ticket extends Model
     {
         return [
             'context' => 'array',
+            'retrieves' => 'boolean',
+            'examples' => 'array',
             'team_probabilities' => 'array',
             'confidence' => 'float',
             'urgency' => 'float',

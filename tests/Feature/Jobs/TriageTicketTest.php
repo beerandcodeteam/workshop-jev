@@ -2,8 +2,10 @@
 
 use App\Jobs\TriageTicket;
 use App\Models\Ticket;
+use App\Models\TicketExample;
 use Illuminate\Support\Facades\Exceptions;
 use Laravel\Ai\Classification;
+use Laravel\Ai\Embeddings;
 use Laravel\Ai\Prompts\ClassificationPrompt;
 use Laravel\Ai\Responses\Data\BooleanAnswer;
 use Laravel\Ai\Responses\Data\ChoiceAnswer;
@@ -102,4 +104,39 @@ it('sends the customer profile in the state next to the ticket', function () {
         'ticket' => 'Não consigo entrar no curso.',
         'cliente' => ['cliente' => true, 'pagamento' => 'atrasado há 12 dias'],
     ]);
+});
+
+it('retrieves the most similar labeled tickets into the state, never the ticket itself', function () {
+    $direction = fn (float $first, float $second): array => [$first, $second, ...array_fill(0, config('triage.examples.dimensions') - 2, 0.0)];
+    Embeddings::fake([[$direction(1.0, 0.0)]]);
+    Classification::fake();
+    TicketExample::factory()->embedded($direction(1.0, 0.0))->create(['text' => 'Não consigo entrar no curso.', 'team' => 'acesso']);
+    TicketExample::factory()->embedded($direction(0.8, 0.6))->create(['text' => 'Minha senha não funciona.', 'team' => 'acesso', 'urgency' => 2, 'note' => 'Login.']);
+    TicketExample::factory()->embedded($direction(0.0, 1.0))->create(['text' => 'Quero um desconto.', 'team' => 'comercial']);
+    $ticket = Ticket::factory()->create(['text' => 'Não consigo entrar no curso.', 'retrieves' => true]);
+
+    TriageTicket::dispatchSync($ticket);
+
+    $examples = [[
+        'ticket' => 'Minha senha não funciona.',
+        'time' => config('triage.teams.acesso.description'),
+        'urgencia' => config('triage.urgency.levels.2'),
+        'motivo' => 'Login.',
+        'similaridade' => 0.8,
+    ]];
+    expect($ticket->refresh()->examples)->toBe($examples);
+    Classification::assertClassified(fn (ClassificationPrompt $prompt): bool => $prompt->state === [
+        'ticket' => 'Não consigo entrar no curso.',
+        'tickets_parecidos_ja_resolvidos' => $examples,
+    ]);
+});
+
+it('does not embed the ticket when it does not ask for examples', function () {
+    Embeddings::fake();
+    Classification::fake();
+    TicketExample::factory()->embedded()->create();
+
+    TriageTicket::dispatchSync(Ticket::factory()->create());
+
+    Embeddings::assertNothingGenerated();
 });
