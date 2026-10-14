@@ -1,0 +1,727 @@
+{
+  "marina_dev": {
+    "cliente": true,
+    "plano": "Curso avulso: Laravel do Zero",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-10-13",
+    "ultimo_acesso": null,
+    "tickets_anteriores": []
+  },
+  "joao.pedro": {
+    "cliente": true,
+    "plano": "Curso avulso: Laravel do Zero",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-07-13",
+    "ultimo_acesso": "hoje",
+    "tickets_anteriores": [
+      {
+        "quando": "há 5 meses",
+        "assunto": "Nota fiscal",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "rafa_codes": {
+    "cliente": true,
+    "plano": "Curso avulso: Laravel do Zero",
+    "pagamento": "em dia",
+    "cliente_desde": "2025-11-21",
+    "ultimo_acesso": "há 2 semanas",
+    "tickets_anteriores": []
+  },
+  "empresa.ti": {
+    "cliente": false,
+    "plano": null,
+    "pagamento": null,
+    "cliente_desde": null,
+    "ultimo_acesso": null,
+    "tickets_anteriores": []
+  },
+  "carol_s": {
+    "cliente": true,
+    "plano": "Clã mensal",
+    "pagamento": "em dia",
+    "cliente_desde": "2025-03-01",
+    "ultimo_acesso": "hoje",
+    "tickets_anteriores": []
+  },
+  "luiz.henrique": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2025-01-03",
+    "ultimo_acesso": "há 3 dias",
+    "tickets_anteriores": []
+  },
+  "bia_front": {
+    "cliente": true,
+    "plano": "Curso avulso: Livewire na Prática",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-08-20",
+    "ultimo_acesso": "hoje",
+    "tickets_anteriores": []
+  },
+  "thiago.m": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2025-03-28",
+    "ultimo_acesso": "hoje",
+    "tickets_anteriores": [
+      {
+        "quando": "há 5 meses",
+        "assunto": "Nota fiscal",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "ana.paula": {
+    "cliente": false,
+    "plano": null,
+    "pagamento": null,
+    "cliente_desde": null,
+    "ultimo_acesso": null,
+    "tickets_anteriores": []
+  },
+  "x_admin_x": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2024-08-26",
+    "ultimo_acesso": "há 3 dias",
+    "tickets_anteriores": [
+      {
+        "quando": "há 2 meses",
+        "assunto": "Erro no projeto da aula 4",
+        "situacao": "resolvido"
+      },
+      {
+        "quando": "há 5 meses",
+        "assunto": "Convite da comunidade",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "pedro_backend": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2023-03-24",
+    "ultimo_acesso": "há 1 semana",
+    "tickets_anteriores": []
+  },
+  "ju.martins": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2023-07-16",
+    "ultimo_acesso": "ontem",
+    "tickets_anteriores": [
+      {
+        "quando": "há 5 meses",
+        "assunto": "Sugestão de conteúdo",
+        "situacao": "resolvido"
+      },
+      {
+        "quando": "há 5 meses",
+        "assunto": "Sugestão de conteúdo",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "dev_gui": {
+    "cliente": true,
+    "plano": "Curso avulso: Livewire na Prática",
+    "pagamento": "em dia",
+    "cliente_desde": "2023-05-16",
+    "ultimo_acesso": "há 1 semana",
+    "tickets_anteriores": []
+  },
+  "fernanda.rh": {
+    "cliente": false,
+    "plano": null,
+    "pagamento": null,
+    "cliente_desde": null,
+    "ultimo_acesso": null,
+    "tickets_anteriores": []
+  },
+  "promo_bot": {
+    "cliente": true,
+    "plano": "Curso avulso: Livewire na Prática",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-02-19",
+    "ultimo_acesso": "ontem",
+    "tickets_anteriores": [
+      {
+        "quando": "há 1 ano",
+        "assunto": "Dúvida sobre filas",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "gabriel_t": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-07-01",
+    "ultimo_acesso": "há 3 dias",
+    "tickets_anteriores": [
+      {
+        "quando": "há 5 meses",
+        "assunto": "Dúvida sobre filas",
+        "situacao": "resolvido"
+      },
+      {
+        "quando": "há 5 meses",
+        "assunto": "Erro no projeto da aula 4",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "leticia.c": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-05-04",
+    "ultimo_acesso": "há 1 semana",
+    "tickets_anteriores": []
+  },
+  "marcos_php": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2024-05-01",
+    "ultimo_acesso": "hoje",
+    "tickets_anteriores": [
+      {
+        "quando": "há 1 ano",
+        "assunto": "Dúvida sobre filas",
+        "situacao": "resolvido"
+      },
+      {
+        "quando": "há 2 meses",
+        "assunto": "Erro no projeto da aula 4",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "nat.souza": {
+    "cliente": true,
+    "plano": "Clã mensal",
+    "pagamento": "em dia",
+    "cliente_desde": "2024-01-08",
+    "ultimo_acesso": "há 3 dias",
+    "tickets_anteriores": [
+      {
+        "quando": "há 2 meses",
+        "assunto": "Erro no projeto da aula 4",
+        "situacao": "resolvido"
+      },
+      {
+        "quando": "há 1 ano",
+        "assunto": "Nota fiscal",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "rodrigo_cto": {
+    "cliente": false,
+    "plano": null,
+    "pagamento": null,
+    "cliente_desde": null,
+    "ultimo_acesso": null,
+    "tickets_anteriores": []
+  },
+  "vini.dev": {
+    "cliente": true,
+    "plano": "Curso avulso: Laravel do Zero",
+    "pagamento": "em dia",
+    "cliente_desde": "2025-01-18",
+    "ultimo_acesso": "há 2 semanas",
+    "tickets_anteriores": []
+  },
+  "camila_ux": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2024-06-16",
+    "ultimo_acesso": "há 1 semana",
+    "tickets_anteriores": []
+  },
+  "bruno.f": {
+    "cliente": true,
+    "plano": "Curso avulso: Livewire na Prática",
+    "pagamento": "em dia",
+    "cliente_desde": "2025-08-20",
+    "ultimo_acesso": "hoje",
+    "tickets_anteriores": []
+  },
+  "isa_codes": {
+    "cliente": true,
+    "plano": "Curso avulso: Livewire na Prática",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-06-03",
+    "ultimo_acesso": "há 3 dias",
+    "tickets_anteriores": []
+  },
+  "paulo.vendas": {
+    "cliente": false,
+    "plano": null,
+    "pagamento": null,
+    "cliente_desde": null,
+    "ultimo_acesso": null,
+    "tickets_anteriores": []
+  },
+  "sugestao_user": {
+    "cliente": true,
+    "plano": "Clã mensal",
+    "pagamento": "em dia",
+    "cliente_desde": "2024-01-23",
+    "ultimo_acesso": "ontem",
+    "tickets_anteriores": []
+  },
+  "debora.l": {
+    "cliente": true,
+    "plano": "Curso avulso: Laravel do Zero",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-08-05",
+    "ultimo_acesso": "há 2 semanas",
+    "tickets_anteriores": [
+      {
+        "quando": "há 2 meses",
+        "assunto": "Convite da comunidade",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "felipe_n": {
+    "cliente": true,
+    "plano": "Curso avulso: Laravel do Zero",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-07-05",
+    "ultimo_acesso": "há 1 semana",
+    "tickets_anteriores": []
+  },
+  "yasmin.t": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2024-12-06",
+    "ultimo_acesso": "ontem",
+    "tickets_anteriores": []
+  },
+  "otavio_s": {
+    "cliente": false,
+    "plano": null,
+    "pagamento": null,
+    "cliente_desde": null,
+    "ultimo_acesso": null,
+    "tickets_anteriores": []
+  },
+  "sys_root": {
+    "cliente": true,
+    "plano": "Clã mensal",
+    "pagamento": "em dia",
+    "cliente_desde": "2025-10-22",
+    "ultimo_acesso": "há 2 semanas",
+    "tickets_anteriores": []
+  },
+  "renata.m": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-08-09",
+    "ultimo_acesso": "há 1 semana",
+    "tickets_anteriores": [
+      {
+        "quando": "há 5 meses",
+        "assunto": "Troca de senha",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "caio.dev": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2023-02-14",
+    "ultimo_acesso": "hoje",
+    "tickets_anteriores": []
+  },
+  "lari_js": {
+    "cliente": true,
+    "plano": "Clã mensal",
+    "pagamento": "em dia",
+    "cliente_desde": "2023-01-26",
+    "ultimo_acesso": "há 3 dias",
+    "tickets_anteriores": []
+  },
+  "diego.p": {
+    "cliente": false,
+    "plano": null,
+    "pagamento": null,
+    "cliente_desde": null,
+    "ultimo_acesso": null,
+    "tickets_anteriores": []
+  },
+  "anon_42": {
+    "cliente": true,
+    "plano": "Clã mensal",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-03-01",
+    "ultimo_acesso": "há 1 semana",
+    "tickets_anteriores": [
+      {
+        "quando": "há 1 ano",
+        "assunto": "Sugestão de conteúdo",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "helena.r": {
+    "cliente": true,
+    "plano": "Curso avulso: Laravel do Zero",
+    "pagamento": "em dia",
+    "cliente_desde": "2023-05-08",
+    "ultimo_acesso": "há 3 dias",
+    "tickets_anteriores": [
+      {
+        "quando": "há 1 ano",
+        "assunto": "Troca de senha",
+        "situacao": "resolvido"
+      },
+      {
+        "quando": "há 5 meses",
+        "assunto": "Troca de senha",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "mateus_b": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-07-15",
+    "ultimo_acesso": "há 3 dias",
+    "tickets_anteriores": [
+      {
+        "quando": "há 2 meses",
+        "assunto": "Dúvida sobre filas",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "sofia.k": {
+    "cliente": true,
+    "plano": "Clã mensal",
+    "pagamento": "em dia",
+    "cliente_desde": "2025-10-26",
+    "ultimo_acesso": "há 3 dias",
+    "tickets_anteriores": []
+  },
+  "gustavo.emp": {
+    "cliente": false,
+    "plano": null,
+    "pagamento": null,
+    "cliente_desde": null,
+    "ultimo_acesso": null,
+    "tickets_anteriores": []
+  },
+  "mari_luz": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-01-21",
+    "ultimo_acesso": "hoje",
+    "tickets_anteriores": [
+      {
+        "quando": "há 1 ano",
+        "assunto": "Dúvida sobre filas",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "igor.t": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-05-22",
+    "ultimo_acesso": "há 1 semana",
+    "tickets_anteriores": []
+  },
+  "priscila_a": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-08-08",
+    "ultimo_acesso": "há 1 semana",
+    "tickets_anteriores": [
+      {
+        "quando": "há 2 meses",
+        "assunto": "Troca de senha",
+        "situacao": "resolvido"
+      },
+      {
+        "quando": "há 5 meses",
+        "assunto": "Segunda via do boleto",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "leo.qa": {
+    "cliente": true,
+    "plano": "Clã mensal",
+    "pagamento": "em dia",
+    "cliente_desde": "2023-08-28",
+    "ultimo_acesso": "há 2 semanas",
+    "tickets_anteriores": []
+  },
+  "tati.mkt": {
+    "cliente": false,
+    "plano": null,
+    "pagamento": null,
+    "cliente_desde": null,
+    "ultimo_acesso": null,
+    "tickets_anteriores": []
+  },
+  "cripto_king": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2024-11-26",
+    "ultimo_acesso": "há 2 semanas",
+    "tickets_anteriores": [
+      {
+        "quando": "há 5 meses",
+        "assunto": "Sugestão de conteúdo",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "edu_santos": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2023-12-23",
+    "ultimo_acesso": "ontem",
+    "tickets_anteriores": [
+      {
+        "quando": "há 1 ano",
+        "assunto": "Sugestão de conteúdo",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "vanessa.c": {
+    "cliente": true,
+    "plano": "Curso avulso: Livewire na Prática",
+    "pagamento": "em dia",
+    "cliente_desde": "2023-10-12",
+    "ultimo_acesso": "há 1 semana",
+    "tickets_anteriores": []
+  },
+  "hugo_dev": {
+    "cliente": true,
+    "plano": "Curso avulso: Laravel do Zero",
+    "pagamento": "em dia",
+    "cliente_desde": "2025-08-18",
+    "ultimo_acesso": "há 3 dias",
+    "tickets_anteriores": []
+  },
+  "alice.b": {
+    "cliente": false,
+    "plano": null,
+    "pagamento": null,
+    "cliente_desde": null,
+    "ultimo_acesso": null,
+    "tickets_anteriores": []
+  },
+  "nando.r": {
+    "cliente": true,
+    "plano": "Clã mensal",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-03-28",
+    "ultimo_acesso": "há 3 dias",
+    "tickets_anteriores": [
+      {
+        "quando": "há 1 ano",
+        "assunto": "Erro no projeto da aula 4",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "clara_m": {
+    "cliente": true,
+    "plano": "Clã mensal (cancelado em 2026-08-04)",
+    "pagamento": "cobrança ativa após o cancelamento",
+    "cliente_desde": "2023-09-01",
+    "ultimo_acesso": "há 3 dias",
+    "tickets_anteriores": [
+      {
+        "quando": "há 1 ano",
+        "assunto": "Dúvida sobre filas",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "ricardo.v": {
+    "cliente": true,
+    "plano": "Curso avulso: Laravel do Zero",
+    "pagamento": "em dia",
+    "cliente_desde": "2024-03-26",
+    "ultimo_acesso": "hoje",
+    "tickets_anteriores": []
+  },
+  "jessica.f": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2023-03-19",
+    "ultimo_acesso": "ontem",
+    "tickets_anteriores": [
+      {
+        "quando": "há 1 ano",
+        "assunto": "Sugestão de conteúdo",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "big_boss": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2025-03-12",
+    "ultimo_acesso": "ontem",
+    "tickets_anteriores": [
+      {
+        "quando": "há 5 meses",
+        "assunto": "Dúvida sobre filas",
+        "situacao": "resolvido"
+      },
+      {
+        "quando": "há 2 meses",
+        "assunto": "Troca de senha",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "samuel.o": {
+    "cliente": true,
+    "plano": "Curso avulso: Laravel do Zero",
+    "pagamento": "em dia",
+    "cliente_desde": "2025-03-10",
+    "ultimo_acesso": "ontem",
+    "tickets_anteriores": []
+  },
+  "lorena_p": {
+    "cliente": true,
+    "plano": null,
+    "pagamento": "em dia",
+    "cliente_desde": null,
+    "ultimo_acesso": null,
+    "tickets_anteriores": []
+  },
+  "arthur.n": {
+    "cliente": true,
+    "plano": "Curso avulso: Livewire na Prática",
+    "pagamento": "em dia",
+    "cliente_desde": "2023-12-27",
+    "ultimo_acesso": "há 2 semanas",
+    "tickets_anteriores": []
+  },
+  "bianca.t": {
+    "cliente": false,
+    "plano": null,
+    "pagamento": null,
+    "cliente_desde": null,
+    "ultimo_acesso": null,
+    "tickets_anteriores": []
+  },
+  "deco_dev": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "cartão recusado em 2026-10-01",
+    "cliente_desde": "2024-09-18",
+    "ultimo_acesso": "há 13 dias",
+    "tickets_anteriores": [
+      {
+        "quando": "há 1 ano",
+        "assunto": "Segunda via do boleto",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "ana.lima": {
+    "cliente": true,
+    "plano": "Clã mensal",
+    "pagamento": "atrasado há 12 dias: cartão recusado em 3 tentativas",
+    "cliente_desde": "2025-03-18",
+    "ultimo_acesso": "há 12 dias",
+    "tickets_anteriores": []
+  },
+  "bruno.alves": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia (renovado em 2026-09-02)",
+    "cliente_desde": "2024-09-02",
+    "ultimo_acesso": "há 2 dias",
+    "tickets_anteriores": [
+      {
+        "quando": "há 2 dias",
+        "assunto": "Troca do e-mail de login",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "carla.dev": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2025-06-10",
+    "ultimo_acesso": "hoje",
+    "tickets_anteriores": [
+      {
+        "quando": "há 1 semana",
+        "assunto": "Erro de migration no Laravel 13 (SQLSTATE[HY000])",
+        "situacao": "resolvido"
+      }
+    ]
+  },
+  "diego.souza": {
+    "cliente": true,
+    "plano": "Clã mensal",
+    "pagamento": "em dia",
+    "cliente_desde": "2025-11-20",
+    "ultimo_acesso": "ontem",
+    "tickets_anteriores": [
+      {
+        "quando": "há 9 dias",
+        "assunto": "Cobrança duplicada em outubro, pediu estorno",
+        "situacao": "aberto"
+      }
+    ]
+  },
+  "elisa.r": {
+    "cliente": true,
+    "plano": "Clã anual",
+    "pagamento": "em dia",
+    "cliente_desde": "2026-02-14",
+    "ultimo_acesso": "hoje",
+    "tickets_anteriores": [
+      {
+        "quando": "há 6 dias",
+        "assunto": "Convite da comunidade expirou",
+        "situacao": "aberto"
+      }
+    ]
+  },
+  "fabio.n": {
+    "cliente": true,
+    "plano": "Clã Empresa: 10 vagas, todas em uso",
+    "pagamento": "em dia",
+    "cliente_desde": "2025-01-08",
+    "ultimo_acesso": "há 3 dias",
+    "tickets_anteriores": [],
+    "cargo": "gestor de engenharia"
+  }
+}

@@ -84,6 +84,7 @@ Só é preciso a chave dos modelos que você for usar. Sem a chave, as mensagens
 
 | Variável | Padrão | Para quê |
 |---|---|---|
+| `MODERATION_STRIKES` | `false` | Se strikes e ban começam ligados. O botão da tela sobrepõe esse valor até o cache ser limpo. |
 | `MODERATION_MODEL` | `gpt-6-luna` | Modelo selecionado ao abrir a tela e usado pelo `chat:replay` quando `--model` não é informado. Aceita qualquer chave da tabela de [modelos](#modelos-disponíveis). |
 | `LAYA_URL` | `http://127.0.0.1:8765/v1` | Endereço do servidor local do Laya. |
 | `LAYA_API_KEY` | `local` | Só é necessária se o servidor do Laya for iniciado com chave. |
@@ -135,24 +136,67 @@ php artisan chat:replay [--model=CHAVE] [--limit=50] [--fresh]
 | `--limit=` | `50` | Quantas mensagens enviar. Sempre as **primeiras N** do dataset, para todos os modelos receberem as mesmas. |
 | `--fresh` | — | Apaga **todas** as mensagens de **todos** os modelos antes de enviar. Não mexe na chave de strikes. |
 
-Exemplos:
+Para testar a moderação em todos os modelos, mande as mesmas 200 mensagens para cada um e compare na tela (`/watch`):
 
 ```bash
-# 200 mensagens no modelo padrão, limpando o chat antes
-php artisan chat:replay --limit=200 --fresh
-
-# As mesmas 200 em outros modelos, para comparar lado a lado
-php artisan chat:replay --limit=200 --model=jev
+php artisan chat:replay --limit=200 --model=gpt-6-luna
 php artisan chat:replay --limit=200 --model=claude-haiku
 php artisan chat:replay --limit=200 --model=gpt-6-luna-decisions
-php artisan chat:replay --limit=200 --model=openai-moderation
+php artisan chat:replay --limit=200 --model=jev
 php artisan chat:replay --limit=200 --model=laya
 php artisan chat:replay --limit=200 --model=laya-treinado
+php artisan chat:replay --limit=200 --model=openai-moderation
 ```
 
-> **Atenção ao custo:** cada mensagem é uma chamada paga nos modelos da OpenAI (LLM e Decisions), Anthropic e TypeSafe. Laya e OpenAI Moderation são gratuitos.
+> **Atenção ao custo:** cada mensagem é uma chamada paga nos modelos da OpenAI (LLM e Decisions), Anthropic e TypeSafe. Laya e OpenAI Moderation são gratuitos. `laya` e `laya-treinado` precisam do servidor local do Laya ligado (veja [Laya](#laya-modelo-de-decisão-local-base-e-treinado)).
 
-> **Use `--fresh` só no primeiro modelo** de uma comparação. Rodar o mesmo modelo duas vezes sem `--fresh` soma as rodadas.
+> Rodar o mesmo modelo duas vezes soma as rodadas. Para começar uma comparação do zero, acrescente `--fresh` ao primeiro comando.
+
+### `tickets:replay` — envia tickets do dataset para o Inbox
+
+```bash
+php artisan tickets:replay [--model=CHAVE] [--limit=N] [--context] [--fresh]
+```
+
+| Opção | Padrão | Descrição |
+|---|---|---|
+| `--model=` | valor de `TRIAGE_MODEL` (`jev`) | Chave de um modelo **decision** (o Inbox não usa LLM nem Moderation API). |
+| `--limit=` | todos | Quantos tickets enviar, sempre os **primeiros N** de `database/datasets/tickets.jsonl` (o dataset tem 66). |
+| `--context` | — | Manda o **perfil do cliente** no `state`, junto do ticket (veja abaixo). |
+| `--fresh` | — | Apaga **todos** os tickets de **todos** os modelos antes de enviar. |
+
+Para testar o Inbox em todos os modelos, mande os 66 tickets para cada um e troque de modelo no topo da tela (`/inbox`). Cada modelo tem o próprio quadro:
+
+```bash
+php artisan tickets:replay --model=gpt-6-luna-decisions
+php artisan tickets:replay --model=jev
+php artisan tickets:replay --model=laya
+php artisan tickets:replay --model=laya-treinado
+```
+
+Os tickets têm gabarito de time, então a tela mostra "Time certo" e "Certo no automático". O `laya-treinado` foi ajustado só para moderação de chat; no Inbox ele serve para ver como o ajuste fino se comporta fora da tarefa em que foi treinado.
+
+#### Perfil do cliente no `state`
+
+O `state` não precisa ser só o texto do usuário. Com `--context`, cada ticket vai para o modelo junto do perfil fictício do cliente, tirado de `database/datasets/customers.json`:
+
+```json
+{"ticket": "Não consigo mais entrar no curso, aparece que meu acesso está bloqueado.",
+ "cliente": {"cliente": true, "plano": "Clã mensal", "pagamento": "atrasado há 12 dias: cartão recusado em 3 tentativas", "...": "..."}}
+```
+
+Os 6 últimos tickets do dataset (tipo `contexto`) foram escritos para isso: o texto sozinho é ambíguo e o time certo só aparece no perfil. Os tickets 61 e 62 têm **o mesmo texto**; um cliente está com o pagamento atrasado (Cobrança) e o outro em dia, depois de trocar o e-mail (Acesso). O mesmo vale para 64 e 65, com o ticket aberto no histórico decidindo o time.
+
+Para mostrar a diferença, rode sem e depois com o perfil, e compare o "Time certo" e os cards do tipo `contexto`:
+
+```bash
+php artisan tickets:replay --model=jev
+php artisan tickets:replay --model=jev --context
+```
+
+As duas rodadas caem no mesmo quadro; os tickets com perfil têm o selo **+perfil** e, ao abrir um deles, o modal mostra o `state` exato que o modelo recebeu. Para comparar só uma rodada por vez, use `--fresh` no comando. Na tela, o seletor acima do campo da coluna Entrada abre um ticket como uma das personas (`config/triage.php`), com o perfil dela no `state`.
+
+> Os workers precisam estar rodando (`composer run dev`); sem eles, os tickets ficam parados na coluna Entrada. Assim como no chat, rodar o mesmo modelo duas vezes soma as rodadas, e `--fresh` no primeiro comando começa do zero.
 
 ### `laya:export` — gera os arquivos de treino do Laya
 
@@ -170,7 +214,7 @@ Se você alterar as diretrizes em `config/moderation.php`, rode de novo e treine
 |---|---|
 | `composer run dev` | Sobe servidor, 15 workers, logs e Vite. |
 | `php artisan migrate` | Aplica migrations novas. Funciona com os workers ligados. |
-| `php artisan migrate:fresh` | Recria o banco do zero. **Pare o `composer run dev` antes** (veja [Problemas comuns](#problemas-comuns)). Também volta a chave de strikes para "ligada". |
+| `php artisan migrate:fresh` | Recria o banco do zero. **Pare o `composer run dev` antes** (veja [Problemas comuns](#problemas-comuns)). Também volta a chave de strikes para o padrão de `MODERATION_STRIKES` (desligada). |
 | `php artisan queue:flush` | Limpa a lista de jobs que falharam. |
 | `php artisan test --compact` | Roda a suíte de testes. |
 | `vendor/bin/pint --format agent` | Formata o código PHP. |
@@ -324,7 +368,7 @@ Cada mensagem bloqueada dá um strike ao autor; no terceiro, ele é banido naque
 
 - **Agentes** fazem isso com duas tools: `RegistrarStrike` e `BanirUsuario` (`app/Ai/Tools/`).
 - **Decisions e Moderation** não usam tool: a mesma regra roda em código, no job.
-- A chave **Strikes e ban** na barra lateral liga e desliga o recurso para todos os modelos. Vale da próxima mensagem em diante.
+- O recurso começa **desligado** (`MODERATION_STRIKES=false`). A chave **Strikes e ban** na barra lateral liga e desliga para todos os modelos, da próxima mensagem em diante; a escolha fica no cache e vale até ele ser limpo.
 
 ### Arquivos principais
 
