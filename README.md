@@ -501,7 +501,7 @@ cd ~/laya-serve
 
 ```bash
 cd ~/laya-serve
-LAYA_HOST=127.0.0.1 LAYA_PORT=8765 LAYA_DEVICE=cuda \
+LAYA_HOST=0.0.0.0 LAYA_PORT=8765 LAYA_DEVICE=cuda \
 LAYA_MODELS=multilingual LAYA_MAX_LOADED=2 \
 LAYA_EXTRA_MODELS='{"moderador": "'$HOME'/laya-serve/checkpoints/moderador"}' \
 .venv/bin/laya-serve
