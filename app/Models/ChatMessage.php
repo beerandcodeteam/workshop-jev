@@ -50,11 +50,12 @@ class ChatMessage extends Model
     public const string StrikesSwitch = 'moderation.strikes';
 
     /**
-     * Determine if moderators are giving strikes and banning authors.
+     * Determine if moderators are giving strikes and banning authors: the switch on the page,
+     * or the default of config/moderation.php while nobody has flipped it.
      */
     public static function strikesEnabled(): bool
     {
-        return (bool) Cache::get(self::StrikesSwitch, true);
+        return (bool) Cache::get(self::StrikesSwitch, config('moderation.strikes', false));
     }
 
     /**

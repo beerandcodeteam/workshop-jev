@@ -10,12 +10,16 @@ use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Http;
 use Laravel\Ai\Classification;
 use Laravel\Ai\Prompts\ClassificationPrompt;
+use Laravel\Ai\Responses\ClassificationResponse;
 use Laravel\Ai\Responses\Data\BooleanAnswer;
+use Laravel\Ai\Responses\Data\Meta;
+use Laravel\Ai\Responses\Data\TextUsage;
 use Laravel\Ai\Tools\Request;
 
 beforeEach(function () {
     config(['moderation' => [
         'default' => 'llm',
+        'strikes' => true,
         'guidelines' => [
             'assedio' => ['label' => 'Assédio', 'block' => 'Xinga alguém.', 'allow' => 'Conversa normal.'],
             'spam_golpe' => ['label' => 'Spam e golpes', 'block' => 'Divulga ou aplica golpe.', 'allow' => 'Conversa normal.'],
@@ -70,6 +74,34 @@ it('blocks through the decisions api by the most likely guideline', function () 
         ->reason->toBeNull();
     Classification::assertClassified(fn (ClassificationPrompt $prompt): bool => $prompt->contains('compre seguidores'));
     ChatModerator::assertNeverPrompted();
+});
+
+it('moderates with the guidelines the decisions api answered when it refuses one', function () {
+    Classification::fake([new ClassificationResponse(
+        ['spam_golpe' => new BooleanAnswer(0.02)],
+        new TextUsage,
+        new Meta('openai', 'gpt-6-luna'),
+    )]);
+    $message = ChatMessage::factory()->create(['model' => 'decisions', 'text' => 'oi']);
+
+    ModerateChatMessage::dispatchSync($message);
+
+    expect($message->refresh())
+        ->blocked->toBeFalse()
+        ->error->toBeNull()
+        ->probability->toBe(0.02)
+        ->reason->toBe('O modelo se recusou a responder: Assédio.');
+});
+
+it('lets the message through as a failure when the decisions api refuses every guideline', function () {
+    Classification::fake([new ClassificationResponse([], new TextUsage, new Meta('openai', 'gpt-6-luna'))]);
+    $message = ChatMessage::factory()->create(['model' => 'decisions', 'text' => 'oi']);
+
+    ModerateChatMessage::dispatchSync($message);
+
+    expect($message->refresh())
+        ->blocked->toBeFalse()
+        ->error->toBe('O modelo não respondeu nenhuma diretriz.');
 });
 
 it('gives a strike for each message the decisions api blocks and bans the author at the third', function () {

@@ -214,15 +214,21 @@ it('compares how each model used strikes and bans against the authors that deser
         ->assertSeeInOrder(['Strikes e banimentos', 'LLM de teste', '4', '1', '1', '1', '1 de 1', '0', '0', '1']);
 });
 
-it('switches strikes and bans off and back on', function () {
+it('starts with strikes and bans off and switches them on and back off', function () {
     Livewire::test('pages::watch')
-        ->assertSee('3 strikes banem o autor')
-        ->call('toggleStrikes')
         ->assertSee('Desligado: só modera')
         ->call('toggleStrikes')
-        ->assertSee('3 strikes banem o autor');
+        ->assertSee('3 strikes banem o autor')
+        ->call('toggleStrikes')
+        ->assertSee('Desligado: só modera');
 
-    expect(ChatMessage::strikesEnabled())->toBeTrue();
+    expect(ChatMessage::strikesEnabled())->toBeFalse();
+});
+
+it('starts with strikes and bans on when the config says so', function () {
+    config(['moderation.strikes' => true]);
+
+    Livewire::test('pages::watch')->assertSee('3 strikes banem o autor');
 });
 
 it('keeps the model comparison closed until it is asked for', function () {

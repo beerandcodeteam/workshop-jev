@@ -21,6 +21,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Strikes and Bans
+    |--------------------------------------------------------------------------
+    |
+    | Whether moderators give a strike for each blocked message and ban the
+    | author at the third when the page loads for the first time. The
+    | switch on the stream page overrides it until the cache is cleared.
+    |
+    */
+
+    'strikes' => (bool) env('MODERATION_STRIKES', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Community Guidelines
     |--------------------------------------------------------------------------
     |

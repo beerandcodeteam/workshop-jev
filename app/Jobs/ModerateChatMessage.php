@@ -12,6 +12,7 @@ use Laravel\Ai\Classification;
 use Laravel\Ai\Responses\Data\BooleanAnswer;
 use Laravel\Ai\Responses\StructuredAgentResponse;
 use Throwable;
+use UnexpectedValueException;
 
 #[DeleteWhenMissingModels]
 class ModerateChatMessage implements ShouldQueue
@@ -62,10 +63,20 @@ class ModerateChatMessage implements ShouldQueue
                 $response = Classification::of($this->message->text)->questions($questions)->classify($provider, $model);
 
                 $probabilities = [];
+                $refused = [];
 
                 foreach (array_keys($questions) as $key) {
-                    $answer = $response[$key];
-                    $probabilities[$key] = $answer instanceof BooleanAnswer ? $answer->probability : 0.0;
+                    $answer = $response->answers[$key] ?? null;
+
+                    if ($answer instanceof BooleanAnswer) {
+                        $probabilities[$key] = $answer->probability;
+                    } else {
+                        $refused[] = ChatModerator::guidelines()[$key]['label'];
+                    }
+                }
+
+                if ($probabilities === []) {
+                    throw new UnexpectedValueException('O modelo não respondeu nenhuma diretriz.');
                 }
 
                 arsort($probabilities);
@@ -73,6 +84,7 @@ class ModerateChatMessage implements ShouldQueue
                 $blocked = $probabilities[$guideline] >= 0.5;
 
                 $verdict = ['blocked' => $blocked, 'guideline' => $blocked ? $guideline : null, 'probability' => $probabilities[$guideline]];
+                $verdict += ['reason' => $refused === [] ? null : 'O modelo se recusou a responder: '.implode(', ', $refused).'.'];
                 $verdict += ['input_tokens' => $response->usage->inputTokens, 'output_tokens' => $response->usage->outputTokens];
             } else {
                 /** @var StructuredAgentResponse $response */
